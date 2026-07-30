@@ -13131,6 +13131,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin):
         input_rule_bot,
         voice_status_bar,
         completions_menu,
+        search_toolbar=None,
     ) -> list:
         """Assemble the ordered list of children for the root ``HSplit``.
 
@@ -13155,6 +13156,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 input_rule_top,
                 image_bar,
                 input_area,
+                search_toolbar,
                 input_rule_bot,
                 voice_status_bar,
                 completions_menu,
@@ -14254,6 +14256,33 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin):
         def get_prompt():
             return cli_ref._get_tui_prompt_fragments()
 
+        # ── Vi mode command and search bindings ────────────────────
+        # When vi_mode is enabled, add keybindings for : (command palette)
+        # and / (search) that work like in vim/OpenCode.
+        from prompt_toolkit.filters import vi_navigation_mode
+        
+        @kb.add(':', filter=vi_navigation_mode)
+        def handle_vi_command(event):
+            """Open command palette (like : in vim/OpenCode).
+            
+            In vi mode, : in NAVIGATION mode opens a command line. Here we
+            repurpose it to show available slash commands via autocomplete.
+            """
+            buf = event.app.current_buffer
+            # Insert '/' to trigger slash command autocomplete
+            buf.insert_text('/')
+            # The autocomplete will show available commands
+        
+        @kb.add('/', filter=vi_navigation_mode)
+        def handle_vi_search(event):
+            """Start incremental search (like / in vim).
+            
+            In vim, / starts forward search. In prompt_toolkit VI mode,
+            we trigger the search functionality.
+            """
+            from prompt_toolkit.search import start_search
+            start_search(event.app.current_buffer)
+
         # Create the input area with multiline (Alt+Enter), autocomplete, and paste handling
         from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
         from prompt_toolkit.completion import ThreadedCompleter
@@ -14264,6 +14293,11 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin):
             command_filter=cli_ref._command_available,
             skill_bundles_provider=lambda: get_skill_bundles(),
         )
+        
+        # Create search toolbar for vi mode / search
+        from prompt_toolkit.widgets import SearchToolbar
+        search_toolbar = SearchToolbar()
+        
         input_area = TextArea(
             height=Dimension(min=1, max=8, preferred=1),
             prompt=get_prompt,
@@ -14284,6 +14318,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 history_suggest=AutoSuggestFromHistory(),
                 completer=_completer,
             ),
+            search_field=search_toolbar,
         )
         # Keep prompt_toolkit on its simple tempfile path. Setting
         # buffer.tempfile = "prompt.md" triggers its complex-tempfile branch,
@@ -14989,6 +15024,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin):
                     input_rule_bot=input_rule_bot,
                     voice_status_bar=voice_status_bar,
                     completions_menu=completions_menu,
+                    search_toolbar=search_toolbar,
                 )
             )
         )
