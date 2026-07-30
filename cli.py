@@ -14278,10 +14278,18 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin):
             """Start incremental search (like / in vim).
             
             In vim, / starts forward search. In prompt_toolkit VI mode,
-            we trigger the search functionality.
+            we enable search mode. The SearchToolbar wired to the TextArea
+            will handle the actual search UI.
             """
+            # Enable search mode - the SearchToolbar will activate
+            from prompt_toolkit.layout import SearchDirection
             from prompt_toolkit.search import start_search
-            start_search(event.app.current_buffer)
+            # Find the BufferControl for the current buffer in the layout
+            for control in event.app.layout.find_all_controls():
+                from prompt_toolkit.layout.controls import BufferControl
+                if isinstance(control, BufferControl) and control.buffer == event.app.current_buffer:
+                    start_search(buffer_control=control, direction=SearchDirection.FORWARD)
+                    break
 
         # Create the input area with multiline (Alt+Enter), autocomplete, and paste handling
         from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
