@@ -14282,8 +14282,7 @@ class HermesCLI(CLIAgentSetupMixin, CLICommandsMixin):
             will handle the actual search UI.
             """
             # Enable search mode - the SearchToolbar will activate
-            from prompt_toolkit.layout import SearchDirection
-            from prompt_toolkit.search import start_search
+            from prompt_toolkit.search import start_search, SearchDirection
             # Find the BufferControl for the current buffer in the layout
             for control in event.app.layout.find_all_controls():
                 from prompt_toolkit.layout.controls import BufferControl
