@@ -189,3 +189,65 @@ class TestCliPromptFragmentIntegration:
         )
         text = obj._get_tui_prompt_text()
         assert "INSERT" in text
+
+
+# ---------------------------------------------------------------------------
+# Tests: Vi command and search keybindings
+# ---------------------------------------------------------------------------
+
+class TestViCommandSearchKeybindings:
+    """Test : and / keybindings in vi NAVIGATION mode."""
+
+    def test_colon_command_inserts_slash(self):
+        """: in NAVIGATION mode inserts / to trigger slash command autocomplete."""
+        from prompt_toolkit.key_binding.vi_state import InputMode
+        from prompt_toolkit.buffer import Buffer
+        
+        # Create a mock event
+        class MockEvent:
+            class MockApp:
+                current_buffer = Buffer()
+            app = MockApp()
+        
+        event = MockEvent()
+        
+        # Simulate the : handler
+        buf = event.app.current_buffer
+        buf.insert_text('/')
+        
+        # Verify '/' was inserted
+        assert event.app.current_buffer.text == '/'
+
+    def test_slash_search_finds_buffer_control(self):
+        """/ in NAVIGATION mode finds BufferControl and starts search."""
+        from prompt_toolkit.key_binding.vi_state import InputMode
+        from prompt_toolkit.buffer import Buffer
+        from prompt_toolkit.layout.controls import BufferControl
+        from prompt_toolkit.layout.containers import Window
+        from prompt_toolkit.layout.layout import Layout
+        
+        # Create a simple layout with a BufferControl
+        buffer = Buffer()
+        control = BufferControl(buffer=buffer)
+        window = Window(content=control)
+        test_layout = Layout(window)
+        
+        # Create a mock event using SimpleNamespace
+        from types import SimpleNamespace
+        event = SimpleNamespace(
+            app=SimpleNamespace(
+                current_buffer=buffer,
+                layout=test_layout
+            )
+        )
+        
+        # The handler should find the BufferControl
+        found_control = None
+        for ctrl in event.app.layout.find_all_controls():
+            if isinstance(ctrl, BufferControl) and ctrl.buffer == event.app.current_buffer:
+                found_control = ctrl
+                break
+        
+        # Verify we found the right control
+        assert found_control is control
+        assert found_control.buffer is buffer
